@@ -2,16 +2,42 @@ import mne
 import numpy as np
 from torch.utils.data import Dataset
 import torch
+import pandas as pd
 
 """
 Converts a numpy array of EEG data to an mne object
 """
 def np_to_mne(array):
-    ch_types = ['eeg' for _ in range(5)]
-    ch_names=['AF3', 'AF4', 'T7', 'T8', 'Pz']
+    ch_names = ["AF3", "F7", "F3", "FC5", "T7", "P7", "O1", "O2", "P8", "T8", "FC6", "F4", "F8", "AF4"]
+    ch_types = ['eeg' for _ in range(len(ch_names))]
     info = mne.create_info(ch_names=ch_names, ch_types=ch_types, sfreq=128)
     raw = mne.io.RawArray(array, info)
     return raw
+
+def load_file(path):
+    df = pd.read_csv(path, index_col=0) #Read  through panda
+    if len(df) < 260:                   #Not enough samples. We want 260
+        return None
+    else:
+        df = df.iloc[0:260]             #Return first 320 samples
+    return np.array(df).T
+
+def files_to_datapoints(files, first_n=500):
+    all_points=[]                  
+    all_labels=set()                    
+    for path in files[0:first_n]: 
+        result = load_file(path)
+        path = path.replace('\\', '/') 
+        if type(result) is np.ndarray: #
+            label = path.split('/')[2] 
+            label = label.split('_')[0]
+            all_labels.add(label)
+            all_points.append(EegDataPoint(result, label)) 
+
+    all_points = np.array(all_points)
+    all_labels=list(all_labels)
+
+    return all_points, all_labels
 
 """
 Stores a data point, which contains raw data, mne object, and label
@@ -34,6 +60,7 @@ class EegDataPoint:
             pad="edge")
         self.raw_data = self.mne_object._data.T
 
+
 """
 Dataset for loading
 """
@@ -49,3 +76,4 @@ class EegDataset(Dataset):
         label = np.zeros((len(self.labels), 1), dtype=np.float32)
         label[self.labels.index(self.data_points[i].label)] = 1.0
         return torch.Tensor(self.data_points[i].raw_data), torch.Tensor(label)
+        
