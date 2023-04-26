@@ -14,6 +14,9 @@ def np_to_mne(array):
     raw = mne.io.RawArray(array, info)
     return raw
 
+"""
+Loads a file as a panda df, if the length is less than 260 return none, else return a numpy array - transposed (channels, timesteps) 
+"""
 def load_file(path):
     df = pd.read_csv(path, index_col=0) #Read  through panda
     if len(df) < 260:                   #Not enough samples. We want 260
@@ -22,6 +25,10 @@ def load_file(path):
         df = df.iloc[0:260]             #Return first 320 samples
     return np.array(df).T
 
+"""
+Takes in a list of files, and how many to load.
+Returns a list of all loaded labels, and all EegDataPoints.
+"""
 def files_to_datapoints(files, first_n=500):
     all_points=[]                  
     all_labels=set()                    
