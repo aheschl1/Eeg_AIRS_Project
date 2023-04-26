@@ -76,7 +76,7 @@ class EegDataset(Dataset):
         self.data_points = data_points
         self.labels = labels
 
-    def __len__(self):
+    def __len__(self): 
         return len(self.data_points)
     
     def __getitem__(self, i):
@@ -91,4 +91,4 @@ train, test = train_test_split(dataset, train_size=0.8, shuffle=True)
 train_dataloader = DataLoader(train, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test, batch_size=batch_size, shuffle=True)
 
-"""
+""" 
