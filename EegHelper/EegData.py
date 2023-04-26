@@ -47,7 +47,7 @@ def files_to_datapoints(files, first_n=500):
     return all_points, all_labels
 
 """
-Stores a data point, which contains raw data, mne object, and label
+Stores a data point, which contains raw data, mne object, and label.
 """
 class EegDataPoint:
 
@@ -57,7 +57,7 @@ class EegDataPoint:
         raw = np_to_mne(data)
         self.mne_object = raw
 
-    def clean(self, l_freq, h_freq):
+    def filter_mne(self, l_freq, h_freq):
         #Definetly needs improvement
         self.mne_object = self.mne_object.filter(l_freq = l_freq, h_freq = h_freq,
             picks='eeg',
@@ -69,7 +69,7 @@ class EegDataPoint:
 
 
 """
-Dataset for loading
+Dataset for loading into dataloader.
 """
 class EegDataset(Dataset):
     def __init__(self, data_points:np.array, labels:list):
@@ -83,4 +83,12 @@ class EegDataset(Dataset):
         label = np.zeros((len(self.labels), 1), dtype=np.float32)
         label[self.labels.index(self.data_points[i].label)] = 1.0
         return torch.Tensor(self.data_points[i].raw_data), torch.Tensor(label)
-        
+
+"""
+dataset = EegDataset(data_points=all_points, labels=all_labels)
+train, test = train_test_split(dataset, train_size=0.8, shuffle=True)
+
+train_dataloader = DataLoader(train, batch_size=batch_size, shuffle=True)
+test_dataloader = DataLoader(test, batch_size=batch_size, shuffle=True)
+
+"""
