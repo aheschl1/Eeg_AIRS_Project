@@ -19,10 +19,10 @@ Loads a file as a panda df, if the length is less than 260 return none, else ret
 """
 def load_file(path):
     df = pd.read_csv(path, index_col=0) #Read  through panda
-    if len(df) < 260:                   #Not enough samples. We want 260
+    if len(df) < 256:                   #Not enough samples. We want 256
         return None
     else:
-        df = df.iloc[0:260]             #Return first 320 samples
+        df = df.iloc[0:256]             #Return first 256 samples
     return np.array(df).T
 
 """
@@ -57,14 +57,28 @@ class EegDataPoint:
         raw = np_to_mne(data)
         self.mne_object = raw
 
+    """
+    Apply a filter to the data, essentially cutting out the data below 
+    l_freq and above h_freq.
+    """
     def filter_mne(self, l_freq, h_freq):
         #Definetly needs improvement
-        self.mne_object = self.mne_object.filter(l_freq = l_freq, h_freq = h_freq,
-            picks='eeg',
-            method="fir",
-            phase="zero-double",
-            fir_design="firwin",
-            pad="edge")
+        self.mne_object = self.mne_object.filter(
+            l_freq = l_freq, 
+            h_freq = h_freq,
+            picks='eeg'
+        )
+        self.raw_data = self.mne_object._data.T
+    """
+    Re-references the data by subtracting the average signal from all signals.
+    """
+    def average_reference(self):
+        self.mne_object.set_eeg_reference(ref_channels='average')
+        self.raw_data = self.mne_object._data.T
+    
+    def crop_to_channels(self, channels:list):
+        drop = [channel for channel in self.mne_object.ch_names if channel not in channels]
+        self.mne_object.drop_channels(drop)
         self.raw_data = self.mne_object._data.T
 
 
