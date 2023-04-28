@@ -3,7 +3,7 @@ import numpy as np
 from torch.utils.data import Dataset
 import torch
 import pandas as pd
-
+from tqdm import tqdm
 """
 Converts a numpy array of EEG data to an mne object
 """
@@ -32,7 +32,7 @@ Returns a list of all loaded labels, and all EegDataPoints.
 def files_to_datapoints(files, first_n=500):
     all_points=[]                  
     all_labels=set()                    
-    for path in files[0:first_n]: 
+    for path in tqdm(files[0:first_n]): 
         result = load_file(path)
         path = path.replace('\\', '/') 
         if type(result) is np.ndarray: #

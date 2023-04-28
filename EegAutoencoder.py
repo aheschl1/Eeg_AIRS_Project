@@ -1,38 +1,80 @@
 import torch.nn as nn
+import torch
 
-class EegAutoencoderModel(nn.Module):
-    def __init__(self):
-        super(EegAutoencoderModel, self).__init__()
-        ## encoder layers ##
-        # conv layer (depth from 1 --> 16), 3x3 kernels
-        self.conv1 = nn.Conv2d(1, 16, 3, padding=1)  
-        # conv layer (depth from 16 --> 4), 3x3 kernels
-        self.conv2 = nn.Conv2d(16, 4, 3, padding=1)
-        # pooling layer to reduce x-y dims by two; kernel and stride of 2
-        self.pool = nn.MaxPool2d(2, 2)
-        
-        ## decoder layers ##
-        ## a kernel of 2 and a stride of 2 will increase the spatial dims by 2
-        self.t_conv1 = nn.ConvTranspose2d(4, 16, 2, stride=2)
-        self.t_conv2 = nn.ConvTranspose2d(16, 3, 2, stride=2)
+#  defining encoder
+class Encoder(nn.Module):
+  def __init__(self, in_channels=1, out_channels=16, latent_dim=100):
+    super().__init__()
 
-    def forward(self, x):
-        
-        relu = nn.ReLU()
-        leaky_relu = nn.LeakyReLU()
+    self.net = nn.Sequential(
+        nn.Conv2d(in_channels, out_channels, 3, padding=1), # (32, 32)
+        nn.LeakyReLU(),
+        nn.Conv2d(out_channels, out_channels, 3, padding=1), 
+        nn.ReLU(),
+        nn.Conv2d(out_channels, 2*out_channels, 3, padding=1, stride=2), # (16, 16)
+        nn.ReLU(),
+        nn.Conv2d(2*out_channels, 2*out_channels, 3, padding=1),
+        nn.ReLU(),
+        nn.Conv2d(2*out_channels, 4*out_channels, 3, padding=1, stride=2), # (8, 8)
+        nn.ReLU(),
+        nn.Conv2d(4*out_channels, 4*out_channels, 3, padding=1),
+        nn.ReLU(),
+        nn.Flatten(),
+        nn.Linear(4*out_channels*8*8, latent_dim),
+        nn.ReLU(),
+    )
 
-        x = relu(self.conv1(x))
-        x = self.pool(x)
-        x = relu(self.conv2(x))
+  def forward(self, x):
+    x = x.view(-1, 1, 32, 32)
+    output = self.net(x)
+    return output
 
-        x = self.pool(x)  # compressed representation
 
-        ## decode ##
-        x = leaky_relu(self.t_conv1(x))
-        x = leaky_relu(self.t_conv2(x))
+#  defining decoder
+class Decoder(nn.Module):
+  def __init__(self, in_channels=1, out_channels=16, latent_dim=100, act_fn=nn.ReLU()):
+    super().__init__()
 
-        return x
+    self.out_channels = out_channels
 
-if __name__ ==  '__main__':
-    model = EegAutoencoderModel()
-    print(model)
+    self.linear = nn.Sequential(
+        nn.Linear(latent_dim, 4*out_channels*8*8),
+        act_fn
+    )
+
+    self.conv = nn.Sequential(
+        nn.ConvTranspose2d(4*out_channels, 4*out_channels, 3, padding=1), # (8, 8)
+        act_fn,
+        nn.ConvTranspose2d(4*out_channels, 2*out_channels, 3, padding=1, 
+                           stride=2, output_padding=1), # (16, 16)
+        act_fn,
+        nn.ConvTranspose2d(2*out_channels, 2*out_channels, 3, padding=1),
+        act_fn,
+        nn.ConvTranspose2d(2*out_channels, out_channels, 3, padding=1, 
+                           stride=2, output_padding=1), # (32, 32)
+        act_fn,
+        nn.ConvTranspose2d(out_channels, out_channels, 3, padding=1),
+        act_fn,
+        nn.ConvTranspose2d(out_channels, in_channels, 3, padding=1)
+    )
+
+  def forward(self, x):
+    output = self.linear(x)
+    output = output.view(-1, 4*self.out_channels, 8, 8)
+    output = self.conv(output)
+    return output.view(-1, 1, 256, 4)
+
+#  defining autoencoder
+class Autoencoder(nn.Module):
+  def __init__(self, encoder, decoder, device):
+    super().__init__()
+    self.encoder = encoder
+    self.encoder.to(device)
+
+    self.decoder = decoder
+    self.decoder.to(device)
+
+  def forward(self, x):
+    encoded = self.encoder(x)
+    decoded = self.decoder(encoded)
+    return decoded
