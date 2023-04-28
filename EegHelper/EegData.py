@@ -62,7 +62,6 @@ class EegDataPoint:
     l_freq and above h_freq.
     """
     def filter_mne(self, l_freq, h_freq):
-        #Definetly needs improvement
         self.mne_object = self.mne_object.filter(
             l_freq = l_freq, 
             h_freq = h_freq,
@@ -80,6 +79,13 @@ class EegDataPoint:
         drop = [channel for channel in self.mne_object.ch_names if channel not in channels]
         self.mne_object.drop_channels(drop)
         self.raw_data = self.mne_object._data.T
+    
+    def full_clean(self, channels = None, l_freq = 3, h_freq = 30):
+        if(channels == None):
+            channels = self.mne_object.ch_names
+        self.crop_to_channels(channels)
+        self.average_reference()
+        self.filter_mne(l_freq, h_freq)
 
 
 """
@@ -96,7 +102,7 @@ class EegDataset(Dataset):
     def __getitem__(self, i):
         label = np.zeros((len(self.labels), 1), dtype=np.float32)
         label[self.labels.index(self.data_points[i].label)] = 1.0
-        return torch.Tensor(self.data_points[i].raw_data), torch.Tensor(label)
+        return torch.Tensor(np.expand_dims(self.data_points[i].raw_data, axis=0)), torch.Tensor(label)
 
 """
 dataset = EegDataset(data_points=all_points, labels=all_labels)
