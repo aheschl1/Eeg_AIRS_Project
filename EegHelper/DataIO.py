@@ -5,7 +5,7 @@ Split the main .txt file into one csv per event.
 @param data_path: The path of the main txt file.
 @parem output_folder: Where data should be written.
 """
-def split_main_data(data_path:str, output_folder:str):
+def split_main_data(data_path:str, output_folder:str, channel_count:int = 14):
     databuilders = {}
     #id event device channel label size comma seperated data
     with open(data_path) as file:
@@ -18,7 +18,7 @@ def split_main_data(data_path:str, output_folder:str):
             data = t[6].split(',')
 
             if(event not in databuilders):
-                builder = DataBuilder(event=event, label=label)
+                builder = DataBuilder(event=event, label=label, channel_count=channel_count)
                 builder.__add__(data, channel=channel)
                 databuilders[event] = builder
             else:
