@@ -31,7 +31,8 @@ Returns a list of all loaded labels, and all EegDataPoints.
 def files_to_datapoints(epoc_files, insight_files = None, first_n=500):
     #First read the mandatory epoc files
     all_points_epoc=[]                  
-    all_labels_epoc=set()        
+    all_labels_epoc=set()     
+       
     print("Loading epoc data...")            
     for path in tqdm(epoc_files[0:first_n]): 
         result = load_file(path)
@@ -118,8 +119,8 @@ class EegDataset(Dataset):
         return len(self.data_points)
     
     def __getitem__(self, i):
-        ans = np.zeros(len(self.labels))
-        ans[self.labels.index(self.data_points[i].label)] = 1.0
+        ans = np.zeros(len(self.labels), dtype=np.int16)
+        ans[self.labels.index(self.data_points[i].label)] = 1
         data = self.data_points[i].raw_data
         if(self.shuffle_channels):
             data = data.T
