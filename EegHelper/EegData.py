@@ -126,7 +126,7 @@ class EegDataset(Dataset):
             data = data.T
             np.random.shuffle(data)
             data = data.T
-        return torch.Tensor(np.expand_dims(data, axis=0)), torch.Tensor(ans)
+        return torch.Tensor(data), torch.Tensor(ans)
 
 """
 dataset = EegDataset(data_points=all_points, labels=all_labels)
