@@ -1,33 +1,27 @@
 import torch.nn as nn
-
+import torch.nn.functional as F
+import torch 
 """
 This is the same architecture as models.EegAutoencoder.Encoder with an extra classification head
 """ 
 class Classifier(nn.Module):
-  def __init__(self, in_channels=1, out_channels=16, latent_dim=300, classes_count = 11):
+  def __init__(self,classes_count = 11):
     super().__init__()
 
-    self.net = nn.Sequential(
-        nn.Conv2d(in_channels, out_channels, 3, padding=1), # (32, 32)
-        nn.ReLU(),
-        nn.Conv2d(out_channels, out_channels, 3, padding=1), 
-        nn.ReLU(),
-        nn.Conv2d(out_channels, 2*out_channels, 3, padding=1, stride=2), # (16, 16)
-        nn.ReLU(),
-        nn.Conv2d(2*out_channels, 2*out_channels, 3, padding=1),
-        nn.ReLU(),
-        nn.Conv2d(2*out_channels, 4*out_channels, 3, padding=1, stride=2), # (8, 8)
-        nn.ReLU(),
-        nn.Conv2d(4*out_channels, 4*out_channels, 3, padding=1),
-        nn.ReLU(),
-        nn.Flatten(),
-        nn.Linear(4*out_channels*8*8, latent_dim),
-        nn.ReLU(),
-        nn.Linear(latent_dim, classes_count),
-        nn.Softmax(dim=1)
-    )
+    self.conv1 = nn.Conv2d(1, 6, 5)
+    self.pool = nn.MaxPool2d(2, 2)
+    self.conv2 = nn.Conv2d(6, 16, 5)
+    self.fc1 = nn.Linear(16 * 5 * 5, 120)
+    self.fc2 = nn.Linear(120, 84)
+    self.fc3 = nn.Linear(84, classes_count)
 
   def forward(self, x):
     x = x.view(-1, 1, 32, 32)
-    output = self.net(x)
-    return output
+
+    x = self.pool(F.relu(self.conv1(x)))
+    x = self.pool(F.relu(self.conv2(x)))
+    x = torch.flatten(x, 1) # flatten all dimensions except batch
+    x = F.relu(self.fc1(x))
+    x = F.relu(self.fc2(x))
+    x = self.fc3(x)
+    return x
