@@ -118,14 +118,14 @@ class EegDataset(Dataset):
         return len(self.data_points)
     
     def __getitem__(self, i):
-        label = np.zeros((len(self.labels), 1), dtype=np.float32)
-        label[self.labels.index(self.data_points[i].label)] = 1.0
+        labels = np.zeros(len(self.labels))
+        labels[self.labels.index(self.data_points[i].label)] = 1.0
         data = self.data_points[i].raw_data
         if(self.shuffle_channels):
             data = data.T
             np.random.shuffle(data)
             data = data.T
-        return torch.Tensor(np.expand_dims(data, axis=0)), torch.Tensor(label)
+        return torch.Tensor(np.expand_dims(data, axis=0)), torch.Tensor(labels), torch.Tensor([self.labels.index(self.data_points[i].label)])
 
 """
 dataset = EegDataset(data_points=all_points, labels=all_labels)

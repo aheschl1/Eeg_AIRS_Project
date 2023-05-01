@@ -23,7 +23,8 @@ class Classifier(nn.Module):
         nn.Flatten(),
         nn.Linear(4*out_channels*8*8, latent_dim),
         nn.ReLU(),
-        nn.Linear(latent_dim, classes_count)
+        nn.Linear(latent_dim, classes_count),
+        nn.Softmax(dim=1)
     )
 
   def forward(self, x):
