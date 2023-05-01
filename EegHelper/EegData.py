@@ -46,8 +46,8 @@ def files_to_datapoints(epoc_files, insight_files = None, first_n=500):
     #Read the optional insight data
     all_points_insight=[]                  
     all_labels_insight=set()   
-    print("Loading insight data...")
-    if insight_files != None:    
+    if insight_files != None:  
+        print("Loading insight data...")  
         for path in tqdm(insight_files[0:first_n]): 
             result = load_file(path)
             path = path.replace('\\', '/') 
@@ -125,7 +125,7 @@ class EegDataset(Dataset):
             data = data.T
             np.random.shuffle(data)
             data = data.T
-        return torch.Tensor(np.expand_dims(data, axis=0)), torch.Tensor(labels), torch.Tensor([self.labels.index(self.data_points[i].label)])
+        return torch.Tensor(np.expand_dims(data, axis=0)), torch.Tensor(labels)
 
 """
 dataset = EegDataset(data_points=all_points, labels=all_labels)
