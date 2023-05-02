@@ -125,9 +125,6 @@ class EegDataset(Dataset):
         ans = np.zeros(len(self.labels), dtype=np.int16)
         ans[self.labels.index(self.data_points[i].label)] = 1
         data = self.data_points[i].raw_data
-        if(self.shuffle_channels):
-            data = data.T
-            np.random.shuffle(data)
-            data = data.T
+        
         return torch.Tensor(data), torch.Tensor(ans)
 
