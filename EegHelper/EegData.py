@@ -114,27 +114,21 @@ class EegDataPoint:
 Dataset for loading into dataloader.
 """
 class EegDataset(Dataset):
-    def __init__(self, data_points:np.array, labels:list, apply_noise = False):
+    def __init__(self, data_points:np.array, labels:list, transforms = None):
         self.data_points = data_points
         self.labels = labels
-        self.apply_noise = apply_noise
+        self.transforms = transforms
 
     def __len__(self) -> int: 
         return len(self.data_points)
-    
-    def __randomnoise__ (self, data:np.array) -> np.array:
-        mu, sigma = 0, 1 # mean and standard deviation
-        s = np.random.normal(mu, sigma, size=data.shape)
-        return data + s
-        
     
     def __getitem__(self, i) -> torch.Tensor:
         ans = np.zeros(len(self.labels), dtype=np.int16)
         ans[self.labels.index(self.data_points[i].label)] = 1
         data = self.data_points[i].raw_data
 
-        if self.apply_noise:
-            data = self.__randomnoise__(data)
+        if self.transforms != None:
+            data = self.transforms(data)
         
         return torch.Tensor(data), torch.Tensor(ans)
 

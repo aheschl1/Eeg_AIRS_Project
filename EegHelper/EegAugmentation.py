@@ -3,6 +3,7 @@ from .EegData import EegDataPoint
 import mne
 from mne.decoding import Scaler
 import numpy as np
+import torch.nn as nn
 
 """
 Class for normalizing EEG data using the MNE Scaler object.
@@ -45,3 +46,35 @@ class NormalizationHelper:
         return np.array(new_points)
 
 #TODO write transformation with random gaussian noise, random scalar multiplication, compress/cut data to smaller size randomly
+
+class EegGaussianNoise(nn.Module):
+    """
+    Adds random gaussian noise to an EEG signal
+    """
+    def __init__(self, mu = 0, sigma = 1):
+        super().__init__()
+        self.mu = mu
+        self.sigma = sigma
+    
+    def forward(self, data):
+        s = np.random.normal(self.mu, self.sigma, size=data.shape)
+        return data + s
+    
+    def __repr__(self):
+        return f"Gaussian distribution: \nMean {self.mu} \nStandard devistion {self.sigma}"
+
+class EegRandomScaling(nn.Module):
+    """
+    Multiplies the signal by a random constant value
+    """
+    def __init__(self, mu = 1, sigma = 0.1):
+        self.mu = mu
+        self.sigma = sigma
+
+    def forward(self, data):
+        s = np.random.normal(self.mu, self.sigma, size=1)
+        return data*s
+    
+    def __repr__(self):
+        return f"Gaussian distribution for selection of random scalar: \nMean {self.mu} \nStandard devistion {self.sigma}"
+    
