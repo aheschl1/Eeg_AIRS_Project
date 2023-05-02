@@ -43,3 +43,5 @@ class NormalizationHelper:
                 ch_names=point.ch_names
             ))
         return np.array(new_points)
+
+#TODO write transformation with random gaussian noise, random scalar multiplication, compress/cut data to smaller size randomly
