@@ -45,7 +45,7 @@ class NormalizationHelper:
             ))
         return np.array(new_points)
 
-#TODO write transformation with random gaussian noise, random scalar multiplication, compress/cut data to smaller size randomly
+#TODO erassing certain locations
 
 class EegGaussianNoise(nn.Module):
     """
@@ -68,6 +68,7 @@ class EegRandomScaling(nn.Module):
     Multiplies the signal by a random constant value
     """
     def __init__(self, mu = 1, sigma = 0.1):
+        super().__init__()
         self.mu = mu
         self.sigma = sigma
 

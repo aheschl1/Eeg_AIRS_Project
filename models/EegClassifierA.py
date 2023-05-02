@@ -9,7 +9,7 @@ class Classifier(nn.Module):
     super().__init__()
 
     self.net = nn.Sequential(
-      nn.Conv1d(4, 128, 3, padding=1), # (32, 32)
+      nn.Conv1d(4, 128, 4, padding=2), # (32, 32)
       nn.ReLU(),
       nn.MaxPool1d(2),
       nn.Conv1d(128, 64, 3, padding=1), 
