@@ -45,8 +45,8 @@ class NormalizationHelper:
             ))
         return np.array(new_points)
 
-#TODO erassing certain locations
-
+#TODO Time domain flip , f(t) = -f(t), time reverse and smooth time mask most effective. Fourier transform surrogate. Try a random lowpass/highpass filter. Random channel dropout
+ 
 class EegGaussianNoise(nn.Module):
     """
     Adds random gaussian noise to an EEG signal
