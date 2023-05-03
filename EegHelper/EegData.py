@@ -57,7 +57,7 @@ class EegDataPoint:
 
     def __init__(self, data, label, ch_names = ["AF3", "F7", "F3", "FC5", "T7", "P7", "O1", "O2", "P8", "T8", "FC6", "F4", "F8", "AF4"]):
         self.label = label
-        self.raw_data = (data.T)
+        self.raw_data = data
         raw = np_to_mne(data, ch_names)
         self.mne_object = raw
         self.ch_names = ch_names
@@ -79,13 +79,13 @@ class EegDataPoint:
             h_freq = h_freq,
             picks='eeg'
         )
-        self.raw_data = self.mne_object._data.T
+        self.raw_data = self.mne_object._data
     """
     Re-references the data by subtracting the average signal from all signals.
     """
     def average_reference(self):
         self.mne_object.set_eeg_reference(ref_channels='average')
-        self.raw_data = self.mne_object._data.T
+        self.raw_data = self.mne_object._data
     
     """
     Keeps only the desired channels.
@@ -93,7 +93,7 @@ class EegDataPoint:
     def crop_to_channels(self, channels:list):
         drop = [channel for channel in self.mne_object.ch_names if channel not in channels]
         self.mne_object.drop_channels(drop)
-        self.raw_data = self.mne_object._data.T
+        self.raw_data = self.mne_object._data
         self.ch_names = self.mne_object.ch_names
     
     """

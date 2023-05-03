@@ -1,9 +1,11 @@
-
 from .EegData import EegDataPoint
 import mne
 from mne.decoding import Scaler
 import numpy as np
 import torch.nn as nn
+from tqdm import tqdm
+import random
+from braindecode.augmentation import FTSurrogate
 
 """
 Class for normalizing EEG data using the MNE Scaler object.
@@ -35,7 +37,7 @@ class NormalizationHelper:
     @staticmethod
     def fit_points(scaler, data_points) -> np.array:
         new_points = []
-        for point in data_points:
+        for point in tqdm(data_points):
             data = scaler.transform(point.__get_full_epoch__()._data)
             data = data.reshape(data.shape[1], data.shape[2])
             new_points.append(EegDataPoint(
@@ -45,8 +47,60 @@ class NormalizationHelper:
             ))
         return np.array(new_points)
 
-#TODO Time domain flip , f(t) = -f(t), time reverse and smooth time mask most effective. Fourier transform surrogate. Try a random lowpass/highpass filter. Random channel dropout
- 
+#TODO smooth time mask, time reverse and smooth time mask most effective. Fourier transform surrogate. Try a random lowpass/highpass filter. Random channel dropout
+
+class FurrierSurrogate(nn.Module):
+    """
+    Applied a Furrier transform surrogate with the braindecode.augmentation library
+    """
+    def __init__(self, prob:float=0.5, phase_noise_magnitude:float=1):
+        super().__init__()
+        assert(phase_noise_magnitude >= 0 and phase_noise_magnitude <= 1)
+        self.prob = prob
+        self.phase_noise_magnitude = phase_noise_magnitude
+    
+    def forward(self, data:np.array)->np.array:
+        return FTSurrogate(probability=self.prob, phase_noise_magnitude=self.phase_noise_magnitude)(data)
+
+
+class InvertFrequencies(nn.Module):
+    """
+    Flips the frequencies of the data. f(t) -> -f(t)
+    """
+    def __init__(self, prob:float=0.5):
+        super().__init__()
+        self.prob = prob
+    
+    def forward(self, data:np.array) -> np.array:
+        if random() < self.prob:
+            return -1*data
+        return data
+    
+    def __repr__(self):
+        return super().__repr__()
+
+class TimeDomainFlip(nn.Module):
+    """
+    FLips the time domain so that {x0, x1, x2, ......, xn} -> {xn, x n-1, x n-2, ......, x0}
+    """
+    def __init__(self, prob:float=0.5):
+        super().__init__()
+        self.prob = prob
+    
+    """
+    Slips a given numpy array along axis 1
+    """
+    def __flipped__(self, data:np.array) -> np.array:
+        return np.flip(data, axis=1)
+
+    def forward(self, data:np.array) -> np.array:
+        if random() < self.prob:
+            return self.__flipped__(data)
+        return data
+    
+    def __repr__(self):
+        return super().__repr__()
+
 class EegGaussianNoise(nn.Module):
     """
     Adds random gaussian noise to an EEG signal
@@ -61,7 +115,7 @@ class EegGaussianNoise(nn.Module):
         return data + s
     
     def __repr__(self):
-        return f"Gaussian distribution: \nMean {self.mu} \nStandard devistion {self.sigma}"
+        return super().__repr__()
 
 class EegRandomScaling(nn.Module):
     """
@@ -77,5 +131,5 @@ class EegRandomScaling(nn.Module):
         return data*s
     
     def __repr__(self):
-        return f"Gaussian distribution for selection of random scalar: \nMean {self.mu} \nStandard devistion {self.sigma}"
+        return super().__repr__()
     
