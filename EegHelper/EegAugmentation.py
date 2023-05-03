@@ -55,6 +55,7 @@ class FurrierSurrogate(nn.Module):
     """
     def __init__(self, prob:float=0.5, phase_noise_magnitude:float=1):
         super().__init__()
+        assert False, "Don't use this doesn't work"
         assert(phase_noise_magnitude >= 0 and phase_noise_magnitude <= 1)
         self.prob = prob
         self.phase_noise_magnitude = phase_noise_magnitude
@@ -91,10 +92,10 @@ class TimeDomainFlip(nn.Module):
     Slips a given numpy array along axis 1
     """
     def __flipped__(self, data:np.array) -> np.array:
-        return np.flip(data, axis=1)
+        return np.flip(data, axis=1).copy()
 
     def forward(self, data:np.array) -> np.array:
-        if random() < self.prob:
+        if random.random() < self.prob:
             return self.__flipped__(data)
         return data
     
