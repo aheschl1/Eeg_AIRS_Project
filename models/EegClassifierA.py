@@ -28,7 +28,7 @@ class Classifier(nn.Module):
     output = self.net(x)
     return F.softmax(output, dim=1)
   
-  def save(self, path='./models/saved/best'):
+  def save(self, path='./models/saved/best.pt'):
     torch.save(self.state_dict(), path)
 
   
