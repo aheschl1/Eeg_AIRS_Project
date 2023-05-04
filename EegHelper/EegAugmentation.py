@@ -5,7 +5,10 @@ import numpy as np
 import torch.nn as nn
 from tqdm import tqdm
 import random
-from braindecode.augmentation import FTSurrogate
+import math
+import logging
+
+logger = logging.getLogger(__name__)
 
 """
 Class for normalizing EEG data using the MNE Scaler object.
@@ -26,8 +29,8 @@ class NormalizationHelper:
     """
     Returns an mne scalar object fit with the points given in the constructor.
     """
-    def get_standard_scaler(self) -> mne.decoding.Scaler:
-        scaler = Scaler(with_mean=True, with_std=True, scalings='mean')
+    def get_robust_scaler(self) -> mne.decoding.Scaler:
+        scaler = Scaler(with_mean=True, with_std=True, scalings='median')
         scaler.fit(self.__get_all_epochs__())
         return scaler
     
@@ -49,20 +52,30 @@ class NormalizationHelper:
 
 #TODO smooth time mask, time reverse and smooth time mask most effective. Fourier transform surrogate. Try a random lowpass/highpass filter. Random channel dropout
 
-class FurrierSurrogate(nn.Module):
+class TimeCut(nn.Module):
     """
-    Applied a Furrier transform surrogate with the braindecode.augmentation library
+    Splits the data at a random location across the time axis, and shifts it left.
     """
-    def __init__(self, prob:float=0.5, phase_noise_magnitude:float=1):
+    def __init__(self, prob:float=0.5, sigma:float = 0.2):
         super().__init__()
-        assert False, "Don't use this doesn't work"
-        assert(phase_noise_magnitude >= 0 and phase_noise_magnitude <= 1)
         self.prob = prob
-        self.phase_noise_magnitude = phase_noise_magnitude
+        self.sigma = sigma
     
     def forward(self, data:np.array)->np.array:
-        return FTSurrogate(probability=self.prob, phase_noise_magnitude=self.phase_noise_magnitude)(data)
+        if random.random() < self.prob:
+            size = np.random.normal(0,self.sigma)
+            cut_size = (data.shape[1]*size)//1
+            cut_size = int(cut_size)
+            r = np.split(data, [data.shape[1] - cut_size, data.shape[1]], axis=1)
+            
+            #Shouldnt happen, but failsafe to avoid a crash
+            if r[0].shape[1] + r[1].shape[1] != 256:
+                logger.warning(f'Invalid chunk size for time shift. r[0] = {r[0].shape[1]}, r[1] = {r[1].shape[1]}. Not applied.')
+                return data
 
+            data = np.concatenate((r[1], r[0]), axis = 1)
+
+        return data
 
 class InvertFrequencies(nn.Module):
     """
@@ -73,7 +86,7 @@ class InvertFrequencies(nn.Module):
         self.prob = prob
     
     def forward(self, data:np.array) -> np.array:
-        if random() < self.prob:
+        if random.random() < self.prob:
             return -1*data
         return data
     
@@ -133,4 +146,32 @@ class EegRandomScaling(nn.Module):
     
     def __repr__(self):
         return super().__repr__()
+
+class EegSmoothZeroMask(nn.Module):
+    """
+    Smoothly flattens the signal to 0 across a range defined by the curve. Performs at a random location.
+    """
+    def __init__(self, window:int = 10, prob:float=0.5):
+        super().__init__()
+        self.window = window
+        self.prob = prob
     
+    def __f__(self, x:int, window:int)->float:
+        return 1/(1+pow(math.e, x-window))
+
+    def __g__(self, x:int)->float:
+        return 1/(1+pow(math.e, -x))
+
+    def __masktransformation__(self, x:int, location:int = 0)->float:
+        return -self.__f__(x-location-5, self.window) - self.__g__(x-location-5) + 2
+    
+    def forward(self, data):
+        if random.random() < self.prob:
+            mask = np.ones(shape = data.shape[1])
+            location = random.randrange(-5, 220)
+            for x in range(mask.shape[0]):
+                mask[x] = self.__masktransformation__(x, location)
+
+            return data * np.array([mask for _ in range(data.shape[0])])
+        
+        return data
