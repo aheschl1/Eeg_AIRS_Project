@@ -49,7 +49,6 @@ def files_to_datapoints(epoc_files, first_n=500) -> np.array:
     
     return all_points_epoc, all_labels_epoc
 
-
 """
 Stores a data point, which contains raw data, mne object, and label.
 """
