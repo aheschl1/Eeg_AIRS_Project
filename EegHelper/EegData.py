@@ -21,33 +21,47 @@ Loads a file as a panda df, if the length is less than 260 return none, else ret
 def load_file(path) -> np.array:
     df = pd.read_csv(path, index_col=0) #Read  through panda
     if len(df) < 256:                   #Not enough samples. We want 256
-        return None
+        return None, None
     else:
         df = df.iloc[0:256]             #Return first 256 samples
-    return np.array(df).T
+    return np.array(df).T, list(df.columns)
 
 """
 Takes in a list of files, and how many to load.
 Returns a list of all loaded labels, and all EegDataPoints.
 """
-def files_to_datapoints(epoc_files, first_n=500) -> np.array:
+def files_to_datapoints(epoc_files, first_n=500, return_nulls:bool = True) -> np.array:
     #First read the mandatory epoc files
     all_points_epoc=[]                  
     all_labels_epoc=set()     
        
     print("Loading epoc data...")            
     for path in tqdm(epoc_files[0:first_n]): 
-        result = load_file(path)
+        result, ch_names = load_file(path)
         path = path.replace('\\', '/') 
         if type(result) is np.ndarray: #
             label = path.split('/')[2] 
             label = label.split('_')[0]
-            all_labels_epoc.add(label)
-            all_points_epoc.append(EegDataPoint(result, label)) 
+            if not return_nulls and (label == '-1' or label == '10'):
+                continue
+            
+            all_labels_epoc.add(label if label != '-1' else '10')
+            all_points_epoc.append(EegDataPoint(result, label if label != '-1' else '10', ch_names=ch_names)) 
     all_points_epoc = np.array(all_points_epoc)
     all_labels_epoc=list(all_labels_epoc)
     
     return all_points_epoc, all_labels_epoc
+
+"""
+Saves a list of EegDataPoints to csv files.
+"""
+def data_points_to_file(points:np.array, path:str):
+    id = 0
+    for point in tqdm(points):
+        columns = point.ch_names
+        frame = pd.DataFrame(point.raw_data.T, columns=columns)
+        frame.to_csv(f"{path}/{point.label}_{id}.csv")
+        id+=1
 
 """
 Stores a data point, which contains raw data, mne object, and label.
@@ -60,6 +74,7 @@ class EegDataPoint:
         raw = np_to_mne(data, ch_names)
         self.mne_object = raw
         self.ch_names = ch_names
+        self.scores = [1 for _ in range(len(self.ch_names))]
 
     """
     Returns the epoch containing the entire event.
@@ -108,6 +123,24 @@ class EegDataPoint:
         self.average_reference()
         self.filter_mne(l_freq, h_freq)
         self.crop_to_channels(channels)
+    
+    """
+    Uses spline interpolation to clean bad channels. Bad channels are marked outside of the object with other logic. It is based on the correlation coeeficients (scores).
+    Note that when interpolating bad channels, normalization should NOT be applied, and it should happen after full clean is run.
+    """
+    def interpolate_bad_channels(self):
+        selection = self.mne_object.ch_names
+        mont1020 = mne.channels.make_standard_montage('standard_1020')
+
+        ind = [i for (i, channel) in enumerate(mont1020.ch_names) if channel in selection]
+        mont1020_new = mont1020.copy()
+        mont1020_new.ch_names = [mont1020.ch_names[x] for x in ind]
+        kept_channel_info = [mont1020.dig[x+3] for x in ind]
+        mont1020_new.dig = mont1020.dig[0:3]+kept_channel_info
+        self.mne_object.set_montage(mont1020)
+
+        self.mne_object = self.mne_object.interpolate_bads(reset_bads=True)
+        self.raw_data = self.mne_object._data
 
 """
 Dataset for loading into dataloader.
