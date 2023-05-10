@@ -28,7 +28,7 @@ def load_file(path) -> np.array:
         df = df.iloc[0:256]             #Return first 256 samples
     return np.array(df).T, list(df.columns)
 
-def files_to_datapoints(epoc_files, first_n=500) -> np.array:
+def files_to_datapoints(epoc_files, first_n=500, return_nulls:bool=True) -> np.array:
     """
     Takes in a list of files, and how many to load.
     Returns a list of all loaded labels, and all EegDataPoints.
@@ -54,15 +54,19 @@ def files_to_datapoints(epoc_files, first_n=500) -> np.array:
     
     return all_points_epoc, all_labels_epoc
 
-"""
-Saves a list of EegDataPoints to csv files.
-"""
-def data_points_to_file(points:np.array, path:str):
+
+def data_points_to_file(points:np.array, path:str = None, full_path:str = None):
+    """
+    Saves a list of EegDataPoints to csv files.
+    """
+    assert path != full_path and (path!= None or full_path != None)    
     id = 0
     for point in tqdm(points):
+        
+        dest = f"{path}/{point.label}_{id}.csv" if path != None else full_path
         columns = point.ch_names
         frame = pd.DataFrame(point.raw_data.T, columns=columns)
-        frame.to_csv(f"{path}/{point.label}_{id}.csv")
+        frame.to_csv(dest)
         id+=1
 
 """
@@ -125,12 +129,6 @@ class EegDataPoint:
         self.average_reference()
         self.filter_mne(l_freq, h_freq)
         self.crop_to_channels(channels)
-        
-    @staticmethod
-    def save_point(data:EegDataPoint, path:str) -> None:
-        raw = data.raw_data
-        df = pd.DataFrame(raw, data.mne_object.ch_names)
-        df.to_csv(path)
 
     """
     Uses spline interpolation to clean bad channels. Bad channels are marked outside of the object with other logic. It is based on the correlation coeeficients (scores).
