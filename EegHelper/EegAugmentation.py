@@ -10,11 +10,36 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-"""
-Class for normalizing EEG data using the MNE Scaler object.
-In the background this is sklearns StandardScalar across the channel axis.
-"""
+
+class CorrelationHelper:
+    
+    """
+    Helper class for calculating the correlation coeeficient of different EEG channels.
+    """
+    def __init__(self, label, channel):
+        self.n = 0
+        self.label = label
+        self.channel = channel
+        self.data = []
+
+    def add_point(self, data):
+        self.data.append(data)
+        self.n += 1
+    
+    def mean(self):
+        self.data = np.array(self.data).T
+        r = (1/(self.data.shape[1])) * np.matmul(self.data,np.ones(self.data.shape[1]))
+        self.data = np.array(self.data).T
+        return r
+    
+    def d(self):
+        return len(self.data[0])
+
 class NormalizationHelper:
+    """
+    Class for normalizing EEG data using the MNE Scaler object.
+    In the background this is sklearns StandardScalar across the channel axis.
+    """
     def __init__(self, data_points:list):
         self.data_points = data_points
 
