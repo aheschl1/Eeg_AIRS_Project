@@ -61,7 +61,7 @@ def data_points_to_file(points:np.array, path:str = None, full_path:str = None):
     """
     assert path != full_path and (path!= None or full_path != None)    
     id = 0
-    for point in tqdm(points):
+    for point in points:
         
         dest = f"{path}/{point.label}_{id}.csv" if path != None else full_path
         columns = point.ch_names
