@@ -5,32 +5,34 @@ import torch
 import pandas as pd
 from tqdm import tqdm
 
-"""
-Converts a numpy array of EEG data to an mne object
-"""
+
 def np_to_mne(array, ch_names) -> mne.io.RawArray:
+    """
+    Converts a numpy array of EEG data to an mne object
+    """
     ch_types = ['eeg' for _ in range(len(ch_names))]
     info = mne.create_info(ch_names=ch_names, ch_types=ch_types, sfreq=128)
     raw = mne.io.RawArray(array, info)
     #Generate the epoch object
     return raw
 
-"""
-Loads a file as a panda df, if the length is less than 260 return none, else return a numpy array - transposed (channels, timesteps) 
-"""
+
 def load_file(path) -> np.array:
+    """
+    Loads a file as a panda df, if the length is less than 260 return none, else return a numpy array - transposed (channels, timesteps) 
+    """
     df = pd.read_csv(path, index_col=0) #Read  through panda
     if len(df) < 256:                   #Not enough samples. We want 256
         return None
     else:
         df = df.iloc[0:256]             #Return first 256 samples
-    return np.array(df).T
+    return np.array(df).T    
 
-"""
-Takes in a list of files, and how many to load.
-Returns a list of all loaded labels, and all EegDataPoints.
-"""
 def files_to_datapoints(epoc_files, first_n=500) -> np.array:
+    """
+    Takes in a list of files, and how many to load.
+    Returns a list of all loaded labels, and all EegDataPoints.
+    """
     #First read the mandatory epoc files
     all_points_epoc=[]                  
     all_labels_epoc=set()     
@@ -48,6 +50,8 @@ def files_to_datapoints(epoc_files, first_n=500) -> np.array:
     all_labels_epoc=list(all_labels_epoc)
     
     return all_points_epoc, all_labels_epoc
+
+
 
 """
 Stores a data point, which contains raw data, mne object, and label.
@@ -95,19 +99,25 @@ class EegDataPoint:
         self.raw_data = self.mne_object._data
         self.ch_names = self.mne_object.ch_names
     
-    """
-    Performs cleaning in the following order:
-    1.Average reference
-    2.Filter
-    3.Channel crop
-    AVERAGE REFERENCE MUST BE DONE FIRST.
-    """
     def full_clean(self, channels = None, l_freq = 3, h_freq = 30):
+        """
+        Performs cleaning in the following order:
+        1.Average reference
+        2.Filter
+        3.Channel crop
+        AVERAGE REFERENCE MUST BE DONE FIRST.
+        """
         if(channels == None):
             channels = self.mne_object.ch_names
         self.average_reference()
         self.filter_mne(l_freq, h_freq)
         self.crop_to_channels(channels)
+    
+    @staticmethod
+    def save_point(data:EegDataPoint, path:str) -> None:
+        raw = data.raw_data
+        df = pd.DataFrame(raw, data.mne_object.ch_names)
+        df.to_csv(path)
 
 """
 Dataset for loading into dataloader.
