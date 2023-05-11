@@ -4,6 +4,9 @@ import torch
 
 
 class Classifier(nn.Module):
+  """
+  This is the best performing classifier!
+  """
   def __init__(self, dropout_p:float = 0.5, num_classes:int=10):
     super().__init__()
 
