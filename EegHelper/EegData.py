@@ -4,7 +4,8 @@ from torch.utils.data import Dataset
 import torch
 import pandas as pd
 from tqdm import tqdm
-
+from EegHelper import LABELS_GE_20
+from EegHelper.DataIO import get_id_mapping
 
 def np_to_mne(array, ch_names) -> mne.io.RawArray:
     """
@@ -27,6 +28,16 @@ def load_file(path) -> np.array:
     else:
         df = df.iloc[0:256]             #Return first 256 samples
     return np.array(df).T, list(df.columns)
+
+def clean_df_imagenet(df:pd.DataFrame)->np.array:
+    df = df.iloc[64:]
+    columns = df.columns
+    if len(df) < 300:
+        return None, None
+    else:
+        df = df.iloc[0:300]
+
+    return np.array(df).T, list(columns)
 
 def files_to_datapoints(epoc_files, first_n=500, return_nulls:bool=True) -> np.array:
     """
@@ -54,6 +65,28 @@ def files_to_datapoints(epoc_files, first_n=500, return_nulls:bool=True) -> np.a
     
     return all_points_epoc, all_labels_epoc
 
+def files_to_datapoints_imagenet(files, first_n=500, use_class_limit:bool = True):
+
+    id_mapping = get_id_mapping()
+
+    all_labels = set()
+    all_points = []
+    for path in tqdm(files[0:first_n]):
+        path = path.replace('\\', '/') 
+        label = path.split('_')[3]
+        label = id_mapping[label]
+        if use_class_limit and (label not in LABELS_GE_20):
+            continue
+
+        raw = pd.read_csv(path, header=None).T
+        raw.columns=raw.iloc[0]
+        raw = raw.iloc[1:]
+        raw, ch_names = clean_df_imagenet(raw)
+        if raw is not None:
+            all_points.append(EegDataPoint(raw, label, ch_names=ch_names)) 
+            all_labels.add(label)
+
+    return all_points, list(all_labels)
 
 def data_points_to_file(points:np.array, path:str = None, full_path:str = None):
     """

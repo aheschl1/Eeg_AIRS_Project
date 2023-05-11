@@ -81,8 +81,9 @@ class TimeCut(nn.Module):
     """
     Splits the data at a random location across the time axis, and shifts it left.
     """
-    def __init__(self, prob:float=0.5, sigma:float = 0.2):
+    def __init__(self, prob:float=0.5, sigma:float = 0.2, expected:int = 300):
         super().__init__()
+        self.expected = expected
         self.prob = prob
         self.sigma = sigma
     
@@ -94,7 +95,7 @@ class TimeCut(nn.Module):
             r = np.split(data, [data.shape[1] - cut_size, data.shape[1]], axis=1)
             
             #Shouldnt happen, but failsafe to avoid a crash
-            if r[0].shape[1] + r[1].shape[1] != 256:
+            if r[0].shape[1] + r[1].shape[1] != self.expected:
                 logger.warning(f'Invalid chunk size for time shift. r[0] = {r[0].shape[1]}, r[1] = {r[1].shape[1]}. Not applied.')
                 return data
 

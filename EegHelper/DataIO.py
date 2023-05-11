@@ -1,11 +1,23 @@
 import pandas as pd
 
-"""
-Split the main .txt file into one csv per event.
-@param data_path: The path of the main txt file.
-@parem output_folder: Where data should be written.
-"""
+
+def get_id_mapping(report_path:str='./MindBigData-Imagenet-IN/WordReport-v1.04.txt'):
+    id_mapping={}
+    with open(report_path) as file:
+        for line in file:
+            name = line.split()[0]
+            id = line.split()[2]
+            id_mapping[id] = name
+
+    return id_mapping
+
+
 def split_main_data(data_path:str, output_folder:str, channel_count:int = 14):
+    """
+    Split the main .txt file into one csv per event.
+    @param data_path: The path of the main txt file.
+    @parem output_folder: Where data should be written.
+    """
     databuilders = {}
     #id event device channel label size comma seperated data
     with open(data_path) as file:
