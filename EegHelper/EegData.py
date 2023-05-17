@@ -53,7 +53,7 @@ def files_to_datapoints(epoc_files, first_n=500, return_nulls:bool=True) -> np.a
         result, ch_names = load_file(path)
         path = path.replace('\\', '/') 
         if type(result) is np.ndarray: #
-            label = path.split('/')[2] 
+            label = path.split('/')[3] 
             label = label.split('_')[0]
             if not return_nulls and (label == '-1' or label == '10'):
                 continue
