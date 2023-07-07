@@ -39,7 +39,7 @@ def clean_df_imagenet(df:pd.DataFrame)->np.array:
 
     return np.array(df).T, list(columns)
 
-def files_to_datapoints(epoc_files, first_n=500, return_nulls:bool=True) -> np.array:
+def files_to_datapoints(epoc_files, first_n=500, ignore=[]) -> np.array:
     """
     Takes in a list of files, and how many to load.
     Returns a list of all loaded labels, and all EegDataPoints.
@@ -55,7 +55,7 @@ def files_to_datapoints(epoc_files, first_n=500, return_nulls:bool=True) -> np.a
         if type(result) is np.ndarray: #
             label = path.split('/')[3] 
             label = label.split('_')[0]
-            if not return_nulls and (label == '-1' or label == '10'):
+            if int(label) in ignore:
                 continue
             
             all_labels_epoc.add(label if label != '-1' else '10')

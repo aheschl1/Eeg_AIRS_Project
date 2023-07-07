@@ -3,9 +3,6 @@ import torch.nn.functional as F
 import torch 
 
 class ClassifierWWW(nn.Module):
-  """
-  This is the best performing classifier!
-  """
   def __init__(self, dropout_p:float = 0.5, num_classes:int=10):
     super().__init__()
     self.net = nn.Sequential(
@@ -21,7 +18,10 @@ class ClassifierWWW(nn.Module):
       nn.Dropout(p=dropout_p),
       
       nn.Flatten(),
-      nn.Linear(2048, 64),
+      nn.Linear(2048, 1024),
+      nn.ReLU(),
+      nn.Dropout(),
+      nn.Linear(1024, 64),
       nn.ReLU(),
       nn.Linear(64, num_classes),
       
@@ -65,31 +65,31 @@ class Classifier(nn.Module):
   
   def save(self, path='./models/saved/best.pt'):
     torch.save(self.state_dict(), path)
+    
+#-------------------------------------------------------------------------------
 
-class ClassifierImagenet(nn.Module):
+class ClassifierNoPool(nn.Module):
   def __init__(self, dropout_p:float = 0.5, num_classes:int=10):
     super().__init__()
 
     self.net = nn.Sequential(
 
-      nn.Conv1d(4, 32, 4, padding=2), # (32, 32)
-      nn.ReLU(),
+      nn.Conv1d(4, 64, 4, padding=2), # (32, 32)
+      nn.LeakyReLU(),
       nn.MaxPool1d(2),
       nn.Dropout(p=dropout_p),
 
-      nn.Conv1d(32, 64, 4, padding=2), # (64, 128)
-      nn.ReLU(),
-      nn.MaxPool1d(2),                 # (64 64)
-      nn.Dropout(p=dropout_p),
-
-      nn.Conv1d(64, 16, 4, padding=2), # (16, 64)
-      nn.ReLU(),
+      nn.Conv1d(64, 16, 4, padding=2), # (16, 16)
+      nn.LeakyReLU(),
+      nn.MaxPool1d(2),
       nn.Dropout(p=dropout_p),
       
       nn.Flatten(),
-      nn.Linear(1216, num_classes),
+      nn.Linear(1024, 64),
+      nn.LeakyReLU(),
+      nn.Linear(64, num_classes),
     )
-#Batch norm. Fewer conv. F1 F2 regularalization Dropout layer after max pool. 
+
   def forward(self, x)->torch.Tensor:
     #x = x.view(-1, 4, 256)          - already this shape
     output = self.net(x)
@@ -97,6 +97,8 @@ class ClassifierImagenet(nn.Module):
   
   def save(self, path='./models/saved/best.pt'):
     torch.save(self.state_dict(), path)
+
+#-------------------------------------------------------------------------------
 
 class ClassifierBNorm(nn.Module):
   def __init__(self, dropout_p:float = 0.5):
